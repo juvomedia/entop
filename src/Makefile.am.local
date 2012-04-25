@@ -16,4 +16,8 @@ erlappebin_SCRIPTS =					\
 
 check_DATA =			\
   .dialyzer_ok			\
-  .@FW_ERL_APP_NAME@.app_ok
+  .@FW_ERL_APP_NAME@.app_ok	\
+  .entop.script_ok
+
+bin_SCRIPTS =	\
+  entop

@@ -20,9 +20,10 @@
 TARGETNODE=
 NAME="-sname entop"
 COOKIE=
+INTERVAL=1000
 
 function usage() {
-    echo -e "Usage: ./entop <TARGETNODE> [-name <NAME>|-sname <SNAME>] [-setcookie <COOKIE>]"
+    echo -e "Usage: ./entop <TARGETNODE> <INTERVAL-MS> [-name <NAME>|-sname <SNAME>] [-setcookie <COOKIE>]"
 }
 
 if [[ $# -lt 1 ]]; then
@@ -32,7 +33,8 @@ fi
 
 TARGETNODE=$1
 shift
-
+INTERVAL=$1
+shift
 
 for ARG in $@;
 do
@@ -48,7 +50,9 @@ done
 
 DIRNAME=`(readlink -n $0 || echo $0) | xargs dirname`
 
-erl -noinput -hidden -pa $DIRNAME/ebin -pa $DIRNAME/deps/cecho/ebin +A 20 +Bc -eval "entop:start('${TARGETNODE}')" $NAME $COOKIE $@
+echo INTERVAL=$INTERVAL 1>&2
+
+erl -noinput -hidden -pa $DIRNAME/ebin -pa $DIRNAME/deps/cecho/ebin +A 20 +Bc -eval "entop:start('${TARGETNODE}', ${INTERVAL})" $NAME $COOKIE $@
 
 CODE=$?
 if [[ $CODE -eq 101 ]]; then

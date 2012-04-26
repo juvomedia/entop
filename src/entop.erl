@@ -21,13 +21,13 @@
 -include_lib("cecho/include/cecho.hrl").
 
 %% Application API
--export([start/1]).
+-export([start/2]).
 
 %% =============================================================================
 %% Application API
 %% =============================================================================
-start(Node) ->
-    State = #state{ node = Node },
+start(Node, Interval) ->
+    State = #state{ node = Node, interval = Interval },
     case net_kernel:connect(Node) of
 	true ->
 	    ViewPid = entop_view:start(State#state{ connected = true }),

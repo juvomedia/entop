@@ -23,7 +23,7 @@
 -export([init/1, header/2, row/2]).
 
 %% Records
--record(state, { node = undefined, cache = [] }).
+-record(state, { node = undefined, cache = [], cycle = 0, reductions = undefined }).
 
 %% Defines
 -define(KIB,(1024)).
@@ -34,18 +34,42 @@
 -define(SECONDS_PER_DAY, (?SECONDS_PER_HOUR*24)).
 -define(R(V,N), string:right(integer_to_list(V),N,$0)).
 
+delta_reductions (Pid, Reductions, State) ->
+  OldLookup = State#state.reductions,
+  OldReductions =
+    case gb_trees:lookup (Pid, OldLookup) of
+      none            -> 0;
+      {value, {R, _}} -> R
+    end,
+  Cycle = State#state.cycle,
+  NewLookup = gb_trees:enter (Pid, {Reductions, Cycle}, OldLookup),
+  NewState = State#state{ reductions = NewLookup },
+  DeltaReductions = Reductions - OldReductions,
+  {DeltaReductions, NewState}.
+
+begin_cycle (State) ->
+  OldCycle = State#state.cycle,
+  OldLookup = State#state.reductions,
+  NewCycle = OldCycle + 1,
+  % prune entries for any pids that did not get updated in previous cycle
+  NewLookup =
+    gb_trees:from_orddict
+      ([ Entry
+	 || Entry = {_Pid, {_Reds, Cycle}} <- gb_trees:to_list (OldLookup),
+	    Cycle =:= OldCycle ]),
+  State#state{ cycle = NewCycle, reductions = NewLookup }.
+
 %% =============================================================================
 %% Module API
 %% =============================================================================
 init(Node) ->
-    Columns = [{"Pid", 12, [{align, right}]},
+    Columns = [{"Pid", 10, [{align, right}]},
 	       {"Registered Name", 20, []},
-	       {"Reductions", 12, []},
-	       {"MQueue", 6, []},
-	       {"HSize", 6, []},
-	       {"SSize", 6, []},
-	       {"HTot", 6, []}],
-    {ok, {Columns, 3}, #state{ node = Node }}.
+	       {"Current Function", 20, []},
+	       {"Reds", 6, [{align, right}]},
+	       {"Memory", 8, [{align, right}]},
+	       {"MQueue", 6, [{align, right}]}],
+    {ok, {Columns, 4}, #state{ node = Node, cycle = 0, reductions = gb_trees:empty () }}.
 
 %% Header Callback
 header(SystemInfo, State) ->
@@ -73,7 +97,8 @@ header(SystemInfo, State) ->
     Row3 = io_lib:format("Memory: Sys ~s, Atom ~s/~s, Bin ~s, Code ~s, Ets ~s",
 			 [SystemMem, AtomUsedMem, AtomMem, BinMem, CodeMem, EtsMem]),
     Row4 = "",
-    {ok, [ lists:flatten(Row) || Row <- [Row1, Row2, Row3, Row4] ], State}.
+    NewState = begin_cycle (State),
+    {ok, [ lists:flatten(Row) || Row <- [Row1, Row2, Row3, Row4] ], NewState}.
 
 %% Column Specific Callbacks
 row([{pid,_}|undefined], State) ->
@@ -86,12 +111,18 @@ row(ProcessInfo, State) ->
 		  Name ->
 		      atom_to_list(Name)
 	      end,
+    CurFunc =
+      case proplists:get_value (current_function, ProcessInfo) of
+	{Module, Function, _Arity} ->
+	  atom_to_list (Module) ++ ":" ++ atom_to_list (Function);
+	_ ->
+	  "-"
+      end,
     Reductions = proplists:get_value(reductions, ProcessInfo, 0),
-    Queue = proplists:get_value(message_queue_len, ProcessInfo, 0),
-    Heap = proplists:get_value(heap_size, ProcessInfo, 0),
-    Stack = proplists:get_value(stack_size, ProcessInfo, 0),
-    HeapTot = proplists:get_value(total_heap_size, ProcessInfo, 0),
-    {ok, {Pid, RegName, Reductions, Queue, Heap, Stack, HeapTot}, State}.
+    {DeltaReductions, NewState} = delta_reductions (Pid, Reductions, State),
+    Memory = proplists:get_value(memory, ProcessInfo, 0),
+    MQueue = proplists:get_value(message_queue_len, ProcessInfo, 0),
+    {ok, {Pid, RegName, CurFunc, DeltaReductions, Memory, MQueue}, NewState}.
 
 mem2str(Mem) ->
     if Mem > ?GIB -> io_lib:format("~.1fm",[Mem/?MIB]);

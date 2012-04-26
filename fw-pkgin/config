@@ -2,7 +2,7 @@
 # variable FW_PACKAGE_DEFAULT_MAINTAINER if non-empty at init time
 
 FW_PACKAGE_NAME="entop"
-FW_PACKAGE_VERSION="0.2012.04.25"
+FW_PACKAGE_VERSION="0.2012.04.26"
 FW_PACKAGE_MAINTAINER="Paul Mineiro <paul-fw@mineiro.com>"
 FW_PACKAGE_SHORT_DESCRIPTION="erlang top-like tool."
 FW_PACKAGE_DESCRIPTION=`cat README`

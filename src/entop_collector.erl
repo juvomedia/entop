@@ -44,8 +44,7 @@ get_data() ->
 %% =============================================================================
 process_info_items(P) ->
     erlang:process_info(P, [registered_name,
+                            current_function,
                             reductions,
-                            message_queue_len,
-                            heap_size,
-                            stack_size,
-                            total_heap_size]).
+                            memory,
+                            message_queue_len]).

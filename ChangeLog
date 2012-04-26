@@ -1,2 +1,4 @@
 Version 0.2012.04.25
   * from git clone https://github.com/mazenharake/entop.git
+Version 0.2012.04.26
+  * change columns: pid, reg name, cur func, delta reds, memory, msg queue

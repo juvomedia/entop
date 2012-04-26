@@ -4,3 +4,5 @@ Version 0.2012.04.26
   * change columns: pid, reg name, cur func, delta reds, memory, msg queue
 Version 0.2012.04.26.1
   * require polling interval on cmdline
+Version 0.2012.04.26.2
+  * increase column width to 8 for reductions

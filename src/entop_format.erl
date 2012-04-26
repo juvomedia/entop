@@ -34,31 +34,6 @@
 -define(SECONDS_PER_DAY, (?SECONDS_PER_HOUR*24)).
 -define(R(V,N), string:right(integer_to_list(V),N,$0)).
 
-delta_reductions (Pid, Reductions, State) ->
-  OldLookup = State#state.reductions,
-  OldReductions =
-    case gb_trees:lookup (Pid, OldLookup) of
-      none            -> 0;
-      {value, {R, _}} -> R
-    end,
-  Cycle = State#state.cycle,
-  NewLookup = gb_trees:enter (Pid, {Reductions, Cycle}, OldLookup),
-  NewState = State#state{ reductions = NewLookup },
-  DeltaReductions = Reductions - OldReductions,
-  {DeltaReductions, NewState}.
-
-begin_cycle (State) ->
-  OldCycle = State#state.cycle,
-  OldLookup = State#state.reductions,
-  NewCycle = OldCycle + 1,
-  % prune entries for any pids that did not get updated in previous cycle
-  NewLookup =
-    gb_trees:from_orddict
-      ([ Entry
-	 || Entry = {_Pid, {_Reds, Cycle}} <- gb_trees:to_list (OldLookup),
-	    Cycle =:= OldCycle ]),
-  State#state{ cycle = NewCycle, reductions = NewLookup }.
-
 %% =============================================================================
 %% Module API
 %% =============================================================================
@@ -66,7 +41,7 @@ init(Node) ->
     Columns = [{"Pid", 10, [{align, right}]},
 	       {"Registered Name", 20, []},
 	       {"Current Function", 20, []},
-	       {"Reds", 6, [{align, right}]},
+	       {"Reds", 8, [{align, right}]},
 	       {"Memory", 8, [{align, right}]},
 	       {"MQueue", 6, [{align, right}]}],
     {ok, {Columns, 4}, #state{ node = Node, cycle = 0, reductions = gb_trees:empty () }}.
@@ -140,3 +115,29 @@ millis2uptimestr(Millis) ->
 
 local2str({Hours,Minutes,Seconds}) ->
     io_lib:format("~s:~s:~s",[?R(Hours,2),?R(Minutes,2),?R(Seconds,2)]).
+
+delta_reductions (Pid, Reductions, State) ->
+  OldLookup = State#state.reductions,
+  OldReductions =
+    case gb_trees:lookup (Pid, OldLookup) of
+      none            -> 0;
+      {value, {R, _}} -> R
+    end,
+  Cycle = State#state.cycle,
+  NewLookup = gb_trees:enter (Pid, {Reductions, Cycle}, OldLookup),
+  NewState = State#state{ reductions = NewLookup },
+  DeltaReductions = Reductions - OldReductions,
+  {DeltaReductions, NewState}.
+
+begin_cycle (State) ->
+  OldCycle = State#state.cycle,
+  OldLookup = State#state.reductions,
+  NewCycle = OldCycle + 1,
+  % prune entries for any pids that did not get updated in previous cycle
+  NewLookup =
+    gb_trees:from_orddict
+      ([ Entry
+	 || Entry = {_Pid, {_Reds, Cycle}} <- gb_trees:to_list (OldLookup),
+	    Cycle =:= OldCycle ]),
+  State#state{ cycle = NewCycle, reductions = NewLookup }.
+

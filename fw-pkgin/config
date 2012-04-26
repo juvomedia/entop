@@ -27,7 +27,7 @@ FW_PACKAGE_BUILD_CONFLICTS=""
 # The FW_DUPLOAD_ARGS field is populated with the environment variable
 # FW_DEFAULT_DUPLOAD_ARGS if non-empty at init time
 
-FW_DUPLOAD_ARGS=${FW_DUPLOAD_ARGS-"-t dukeslucid"}
+FW_DUPLOAD_ARGS=${FW_DUPLOAD_ARGS-"-t juvo"}
 
 # scp+createrepo is used for submitting rpm packages to a package archive
 # The FW_RPM_REPO_USER, FW_RPM_REPO_HOST, FW_RPM_REPO_BASEDIR,
